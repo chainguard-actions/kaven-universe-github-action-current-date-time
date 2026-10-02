@@ -1,0 +1,38 @@
+name: Test custom format input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          format: "YYYY-MM-DD"
+      - name: Assert time output matches YYYY-MM-DD format
+        env:
+          TIME: ${{ steps.action.outputs.time }}
+          YEAR: ${{ steps.action.outputs.year }}
+          MONTH: ${{ steps.action.outputs.month }}
+          DAY: ${{ steps.action.outputs.day }}
+        run: |
+          echo "time: $TIME"
+          echo "year: $YEAR"
+          echo "month: $MONTH"
+          echo "day: $DAY"
+
+          # time output should match YYYY-MM-DD pattern
+          if ! echo "$TIME" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+            echo "FAIL: time '$TIME' does not match YYYY-MM-DD format"
+            exit 1
+          fi
+
+          # The year portion of the formatted time should match the year output
+          TIME_YEAR="$(echo "$TIME" | cut -d'-' -f1)"
+          if [ "$TIME_YEAR" != "$YEAR" ]; then
+            echo "FAIL: year in formatted time '$TIME_YEAR' does not match year output '$YEAR'"
+            exit 1
+          fi
+
+          echo "PASS: time output '$TIME' matches YYYY-MM-DD format"

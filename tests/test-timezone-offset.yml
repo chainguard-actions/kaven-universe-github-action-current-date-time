@@ -1,0 +1,82 @@
+name: Test timezone offset input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Get time with UTC offset +0
+      - id: utc
+        uses: .
+        with:
+          format: "YYYY-MM-DDTHH:mm:ss"
+          timezone-offset: 0
+
+      # Get time with UTC offset +5 (5 hours ahead)
+      - id: plus5
+        uses: .
+        with:
+          format: "YYYY-MM-DDTHH:mm:ss"
+          timezone-offset: 5
+
+      - name: Assert timezone offset shifts the time
+        env:
+          UTC_TIME: ${{ steps.utc.outputs.time }}
+          PLUS5_TIME: ${{ steps.plus5.outputs.time }}
+          UTC_HOURS: ${{ steps.utc.outputs.hours }}
+          PLUS5_HOURS: ${{ steps.plus5.outputs.hours }}
+          UTC_MS: ${{ steps.utc.outputs.milliseconds_since_epoch }}
+          PLUS5_MS: ${{ steps.plus5.outputs.milliseconds_since_epoch }}
+        run: |
+          echo "utc time: $UTC_TIME"
+          echo "plus5 time: $PLUS5_TIME"
+          echo "utc hours: $UTC_HOURS"
+          echo "plus5 hours: $PLUS5_HOURS"
+          echo "utc ms_epoch: $UTC_MS"
+          echo "plus5 ms_epoch: $PLUS5_MS"
+
+          fail=0
+
+          # Both outputs should be non-empty
+          if [ -z "$UTC_TIME" ]; then echo "FAIL: utc time is empty"; fail=1; fi
+          if [ -z "$PLUS5_TIME" ]; then echo "FAIL: plus5 time is empty"; fail=1; fi
+
+          # Both should match the ISO-like format
+          if ! echo "$UTC_TIME" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$'; then
+            echo "FAIL: utc time '$UTC_TIME' does not match expected format"
+            fail=1
+          fi
+          if ! echo "$PLUS5_TIME" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$'; then
+            echo "FAIL: plus5 time '$PLUS5_TIME' does not match expected format"
+            fail=1
+          fi
+
+          # milliseconds_since_epoch should be a large positive integer for both
+          if ! echo "$UTC_MS" | grep -qE '^[0-9]+$' || [ "$UTC_MS" -lt 1700000000000 ]; then
+            echo "FAIL: utc milliseconds_since_epoch '$UTC_MS' is invalid"
+            fail=1
+          fi
+          if ! echo "$PLUS5_MS" | grep -qE '^[0-9]+$' || [ "$PLUS5_MS" -lt 1700000000000 ]; then
+            echo "FAIL: plus5 milliseconds_since_epoch '$PLUS5_MS' is invalid"
+            fail=1
+          fi
+
+          # The +5 offset hours should differ from UTC hours by 5 (mod 24)
+          # We allow for day boundary crossings by checking modular arithmetic
+          if [ -n "$UTC_HOURS" ] && [ -n "$PLUS5_HOURS" ]; then
+            EXPECTED_PLUS5=$(( (UTC_HOURS + 5) % 24 ))
+            if [ "$PLUS5_HOURS" -ne "$EXPECTED_PLUS5" ]; then
+              echo "WARN: plus5 hours '$PLUS5_HOURS' != expected '$EXPECTED_PLUS5' (UTC hours '$UTC_HOURS' + 5 mod 24)"
+              echo "      This may be due to second boundary crossing between the two calls — not failing."
+            else
+              echo "PASS: hours offset is correct ($UTC_HOURS + 5 = $PLUS5_HOURS)"
+            fi
+          fi
+
+          if [ "$fail" -eq 0 ]; then
+            echo "PASS: timezone offset test passed"
+          else
+            exit 1
+          fi

@@ -1,0 +1,62 @@
+name: Test debug mode
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          debug: true
+          format: "YYYY/MM/DD HH:mm"
+      - name: Assert outputs are valid with debug enabled
+        env:
+          TIME: ${{ steps.action.outputs.time }}
+          YEAR: ${{ steps.action.outputs.year }}
+          MONTH: ${{ steps.action.outputs.month }}
+          DAY: ${{ steps.action.outputs.day }}
+          HOURS: ${{ steps.action.outputs.hours }}
+          MINUTES: ${{ steps.action.outputs.minutes }}
+          MS_EPOCH: ${{ steps.action.outputs.milliseconds_since_epoch }}
+        run: |
+          echo "time: $TIME"
+          echo "year: $YEAR"
+          echo "month: $MONTH"
+          echo "day: $DAY"
+          echo "hours: $HOURS"
+          echo "minutes: $MINUTES"
+          echo "milliseconds_since_epoch: $MS_EPOCH"
+
+          fail=0
+
+          # time should match YYYY/MM/DD HH:mm pattern
+          if ! echo "$TIME" | grep -qE '^[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}$'; then
+            echo "FAIL: time '$TIME' does not match YYYY/MM/DD HH:mm format"
+            fail=1
+          fi
+
+          # year should be a 4-digit number >= 2024
+          if ! echo "$YEAR" | grep -qE '^[0-9]{4}$' || [ "$YEAR" -lt 2024 ]; then
+            echo "FAIL: year '$YEAR' is invalid"
+            fail=1
+          fi
+
+          # month should be 1-12
+          if ! echo "$MONTH" | grep -qE '^[0-9]+$' || [ "$MONTH" -lt 1 ] || [ "$MONTH" -gt 12 ]; then
+            echo "FAIL: month '$MONTH' is out of range"
+            fail=1
+          fi
+
+          # milliseconds_since_epoch should be a large positive integer
+          if ! echo "$MS_EPOCH" | grep -qE '^[0-9]+$' || [ "$MS_EPOCH" -lt 1700000000000 ]; then
+            echo "FAIL: milliseconds_since_epoch '$MS_EPOCH' is invalid"
+            fail=1
+          fi
+
+          if [ "$fail" -eq 0 ]; then
+            echo "PASS: debug mode outputs are valid"
+          else
+            exit 1
+          fi

@@ -1,0 +1,90 @@
+name: Test basic usage (default inputs)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+      - name: Assert outputs are non-empty
+        env:
+          TIME: ${{ steps.action.outputs.time }}
+          YEAR: ${{ steps.action.outputs.year }}
+          MONTH: ${{ steps.action.outputs.month }}
+          DAY: ${{ steps.action.outputs.day }}
+          HOURS: ${{ steps.action.outputs.hours }}
+          MINUTES: ${{ steps.action.outputs.minutes }}
+          SECONDS: ${{ steps.action.outputs.seconds }}
+          MILLISECONDS: ${{ steps.action.outputs.milliseconds }}
+          DAY_OF_WEEK: ${{ steps.action.outputs.day_of_week }}
+          WEEK_OF_YEAR: ${{ steps.action.outputs.week_of_year }}
+          MS_EPOCH: ${{ steps.action.outputs.milliseconds_since_epoch }}
+        run: |
+          echo "time: $TIME"
+          echo "year: $YEAR"
+          echo "month: $MONTH"
+          echo "day: $DAY"
+          echo "hours: $HOURS"
+          echo "minutes: $MINUTES"
+          echo "seconds: $SECONDS"
+          echo "milliseconds: $MILLISECONDS"
+          echo "day_of_week: $DAY_OF_WEEK"
+          echo "week_of_year: $WEEK_OF_YEAR"
+          echo "milliseconds_since_epoch: $MS_EPOCH"
+
+          fail=0
+
+          if [ -z "$YEAR" ]; then echo "FAIL: year is empty"; fail=1; fi
+          if [ -z "$MONTH" ]; then echo "FAIL: month is empty"; fail=1; fi
+          if [ -z "$DAY" ]; then echo "FAIL: day is empty"; fail=1; fi
+          if [ -z "$HOURS" ]; then echo "FAIL: hours is empty"; fail=1; fi
+          if [ -z "$MINUTES" ]; then echo "FAIL: minutes is empty"; fail=1; fi
+          if [ -z "$SECONDS" ]; then echo "FAIL: seconds is empty"; fail=1; fi
+          if [ -z "$MILLISECONDS" ]; then echo "FAIL: milliseconds is empty"; fail=1; fi
+          if [ -z "$DAY_OF_WEEK" ]; then echo "FAIL: day_of_week is empty"; fail=1; fi
+          if [ -z "$WEEK_OF_YEAR" ]; then echo "FAIL: week_of_year is empty"; fail=1; fi
+          if [ -z "$MS_EPOCH" ]; then echo "FAIL: milliseconds_since_epoch is empty"; fail=1; fi
+
+          # year should be a 4-digit number >= 2024
+          if ! echo "$YEAR" | grep -qE '^[0-9]{4}$'; then
+            echo "FAIL: year '$YEAR' is not a 4-digit number"
+            fail=1
+          elif [ "$YEAR" -lt 2024 ]; then
+            echo "FAIL: year '$YEAR' is unexpectedly old"
+            fail=1
+          fi
+
+          # month should be 1-12
+          if ! echo "$MONTH" | grep -qE '^[0-9]+$'; then
+            echo "FAIL: month '$MONTH' is not numeric"
+            fail=1
+          elif [ "$MONTH" -lt 1 ] || [ "$MONTH" -gt 12 ]; then
+            echo "FAIL: month '$MONTH' out of range 1-12"
+            fail=1
+          fi
+
+          # day should be 1-31
+          if ! echo "$DAY" | grep -qE '^[0-9]+$'; then
+            echo "FAIL: day '$DAY' is not numeric"
+            fail=1
+          elif [ "$DAY" -lt 1 ] || [ "$DAY" -gt 31 ]; then
+            echo "FAIL: day '$DAY' out of range 1-31"
+            fail=1
+          fi
+
+          # milliseconds_since_epoch should be a large positive integer
+          if ! echo "$MS_EPOCH" | grep -qE '^[0-9]+$'; then
+            echo "FAIL: milliseconds_since_epoch '$MS_EPOCH' is not numeric"
+            fail=1
+          elif [ "$MS_EPOCH" -lt 1700000000000 ]; then
+            echo "FAIL: milliseconds_since_epoch '$MS_EPOCH' is too small"
+            fail=1
+          fi
+
+          if [ "$fail" -eq 0 ]; then
+            echo "PASS: all outputs look correct"
+          else
+            exit 1
+          fi

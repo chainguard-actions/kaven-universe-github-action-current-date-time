@@ -1,0 +1,31 @@
+{
+  "name": "github-action-current-date-time",
+  "version": "1.5.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "ncc build index.js --license licenses.txt && terser ./dist/index.js --compress --comments false --output ./dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kaven-Universe/github-action-current-date-time.git"
+  },
+  "author": "Kaven[kaven@wuwenkai.com]",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Kaven-Universe/github-action-current-date-time/issues"
+  },
+  "homepage": "https://github.com/Kaven-Universe/github-action-current-date-time#readme",
+  "dependencies": {
+    "@actions/core": "^3.0.0",
+    "@actions/github": "^9.0.0",
+    "kaven-basic": "^6.1.0"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.4",
+    "@wenkai.wu/eslint-config": "^2.4.0",
+    "eslint": "^10.0.3",
+    "terser": "^5.46.0"
+  }
+}
